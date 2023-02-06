@@ -53,9 +53,8 @@ object TestScalacheck extends App {
   val stepAction: (Action, Int) => Step[Int, Int] = error
   val initialFormula: Formula[Info[Action, Int, Int]] = formula
   forAllNoShrink(model.gen) { actions =>
-    val result = actions.foldLeft((initialState, initialFormula, Prop.Result(Prop.True))) { case ((state, form, result), action) =>
-      if (result.success) {
-        // TODO - Combine
+    val result = actions.foldLeft((initialState, initialFormula, Prop.Result(Prop.Undecided))) { case ((state, form, result), action) =>
+      if (result.success || result.status == Prop.Undecided) {
         Try(stepAction(action, state)) match
           case Failure(t) =>
             val formulaStep = form.progress(Left(t))
@@ -66,9 +65,7 @@ object TestScalacheck extends App {
             (value.state, formulaStep.next, formulaStep.result)
       } else (state, form, result)
     }
-    // TODO
-    // result._2.done
-    Prop(result._3)
+    Prop(result._2.done && result._3)
   }.check(_.withMinSize(100))
 
 }
