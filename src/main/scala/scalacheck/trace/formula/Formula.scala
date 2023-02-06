@@ -158,7 +158,7 @@ def implies[A](condition: A => Prop.Result, `then`: () => Formula[A]): Formula[A
 /**
  * Next, specifies that the formula should hold in the next state.
  */
-def next[A](block: () => Formula[A]): Formula[A] = Next(block())
+def next[A](block: => Formula[A]): Formula[A] = Next(block)
 
 /**
  * Next, specifies that the formula should hold in the next state. That formula may depend on the current item being processed.
@@ -169,14 +169,14 @@ def next[A](block: A => Formula[A]): Formula[A] = DependentNext(block)
  * Specifies that the formula must be true in every state after the current one.
  */
 def afterwards[A](block: A => Formula[A]): Formula[A] =
-  next(current => always({ () => block(current) }))
+  next(current => always(block(current)))
 
 /**
  * Always, specifies that the formula should hold for every item in the sequence.
  */
-def always[A](block: () => Formula[A]): Formula[A] = Always(block())
+def always[A](block: => Formula[A]): Formula[A] = Always(block)
 
 /**
  * Always, specifies that the formula should hold for at least one item in the sequence, before the sequence finishes.
  */
-def eventually[A](block: () => Formula[A]): Formula[A] = Eventually(block())
+def eventually[A](block: => Formula[A]): Formula[A] = Eventually(block)
