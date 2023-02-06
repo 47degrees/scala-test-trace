@@ -1,0 +1,18 @@
+
+# /
+/classes
+/.manager
+/build
+/.settings
+/dist
+/lib_managed
+/src_managed
+
+# sbt
+target/
+
+# Intellij
+.idea
+
+# bloop
+/.bsp/
