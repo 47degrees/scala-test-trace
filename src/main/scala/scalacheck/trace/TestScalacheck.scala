@@ -1,7 +1,6 @@
 package com.xebia.functional
 package scalacheck.trace
 
-import scalacheck.trace.CheckModel.Action
 import scalacheck.trace.*
 import scalacheck.trace.formula.*
 
@@ -43,8 +42,9 @@ object TestScalacheck extends App {
         "non-negative",
         item => {
           item.action match
-            case Action.Read => item.response >= 0
-            case _ => true
+            case Action.Read if item.response >= 0 => Prop.Result(Prop.True)
+            case Action.Read => Prop.Result(Prop.False)
+            case _ => Prop.Result(Prop.True)
         }
       )
     )

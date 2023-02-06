@@ -1,6 +1,8 @@
 package com.xebia.functional
 package scalacheck.trace.formula
 
+import org.scalacheck.Prop
+
 import scala.reflect.ClassTag
 
 sealed trait Formula[-A]:
@@ -64,8 +66,8 @@ sealed trait Constant extends Atomic[Any]
 case object TRUE extends Constant
 case object FALSE extends Constant
 
-private[trace] final case class Predicate[-A](message: String, test: A => Boolean) extends Atomic[A]
-private[trace] final case class Throws(message: String, test: Throwable => Boolean) extends Atomic[Any]
+private[trace] final case class Predicate[-A](message: String, test: A => Prop.Result) extends Atomic[A]
+private[trace] final case class Throws(message: String, test: Throwable => Prop.Result) extends Atomic[Any]
 
 // logical operators
 private[trace] final case class Not[-A](formula: Atomic[A]) extends Formula[A]
@@ -88,18 +90,18 @@ private[trace] final case class DependentNext[-A](formula: A => Formula[A]) exte
 /**
  * Basic formula which checks that an item is produced, and satisfies the [predicate].
  */
-def holds[A](message: String, predicate: A => Boolean): Atomic[A] =
+def holds[A](message: String, predicate: A => Prop.Result): Atomic[A] =
   Predicate(message, predicate)
 
 /**
  * Basic formula which checks that an exception of type [T] has been thrown.
  */
-def throws[T <: Throwable: ClassTag](message: String, predicate: T => Boolean = (_: T) => true): Atomic[Any] =
+def throws[T <: Throwable: ClassTag](message: String, predicate: T => Prop.Result = (_: T) => Prop.Result(Prop.True)): Atomic[Any] =
   Throws(
     message,
     {
       case elem: T => predicate(elem)
-      case _ => false
+      case t => Prop.Result(Prop.Exception(t))
     }
   )
 
@@ -147,10 +149,10 @@ def or[A](formulae: List[Formula[A]]): Formula[A] = {
  */
 def implies[A](`if`: Atomic[A], `then`: Formula[A]): Formula[A] = Implies(`if`, `then`)
 
-def implies[A](condition: A => Boolean, `then`: Formula[A]): Formula[A] =
+def implies[A](condition: A => Prop.Result, `then`: Formula[A]): Formula[A] =
   implies(holds("condition", condition), `then`)
 
-def implies[A](condition: A => Boolean, `then`: () => Formula[A]): Formula[A] =
+def implies[A](condition: A => Prop.Result, `then`: () => Formula[A]): Formula[A] =
   implies(holds("condition", condition), `then`())
 
 /**

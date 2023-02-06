@@ -1,6 +1,8 @@
 package com.xebia.functional
 package scalacheck.trace.formula
 
+import org.scalacheck.Prop
+
 extension (l: FormulaStepResult) private[formula] def isOk: Boolean = l.success
 
 extension (l: List[FormulaStepResult])
@@ -17,13 +19,13 @@ extension [A](atomic: Atomic[A])
     case FALSE => problem("fail")
     case Predicate(message, test) =>
       x.fold(
-        _ => problem("Unexpected exception, expecting value"),
-        a => if (test(a)) everythingOk else problem(message)
+        t => error(message, t),
+        a => test(a).label(message)
       )
     case Throws(message, test) =>
       x.fold(
-        a => if (test(a)) everythingOk else problem(message),
-        _ => problem("Unexpected item, expecting exception")
+        a => test(a).label(message),
+        t => problem("Unexpected item, expecting exception")
       )
 extension [A](f: Formula[A])
   def progress(x: Result[A]): FormulaStep[A] = f match

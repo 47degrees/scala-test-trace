@@ -10,5 +10,6 @@ package object formula {
 
   private[formula] val everythingOk: FormulaStepResult = Prop.Result(Prop.True)
   private[formula] def problem(message: String): FormulaStepResult = Prop.Result(Prop.False).label(message)
+  private[formula] def error(message: String, t: Throwable): FormulaStepResult = Prop.Result(Prop.Exception(t)).label(message)
 
 }
