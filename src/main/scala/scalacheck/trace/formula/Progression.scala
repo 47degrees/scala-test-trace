@@ -1,17 +1,14 @@
 package com.xebia.functional
 package scalacheck.trace.formula
 
-extension[A] (l: Option[List[A]])
-  private def orEmpty: List[A] = l.getOrElse(Nil)
-
 extension (l: FormulaStepResult)
-  private[formula] def isOk: Boolean = l.isEmpty
+  private[formula] def isOk: Boolean = l.success
 
 extension (l: List[FormulaStepResult])
   private[formula] def andResults: FormulaStepResult =
-    if (l.forall(_.isOk)) everythingOk else Some(l.flatMap(_.orEmpty))
+    l.reduce(_ && _)
   private[formula] def orResults: FormulaStepResult =
-    if (l.exists(_.isOk)) everythingOk else Some(l.flatMap(_.orEmpty))
+    l.reduce(_ || _)
 
 final case class FormulaStep[A](result: FormulaStepResult, next: Formula[A])
 

@@ -14,17 +14,33 @@ final case class Info[Action, State, Response](
   response: Response
 )
 
-extension (fsr: FormulaStepResult)
-  def check[A, T](actions: List[A], state: T): Unit = fsr.fold((): Unit) { problems =>
-    val message =
-      s"""Formula falsified for $state:
-         |${problems.mkString("\n")}
-         |trace: $actions""".stripMargin
-    throw new AssertionError(message)
-  }
+final case class ResultStep[Action, State, Response](result: Prop.Result, state: State, formula: Formula[Info[Action, State, Response]], actions: List[Action], ended: Boolean)
+object ResultStep {
+  def init[Action, State, Response](s: State, f: Formula[Info[Action, State, Response]]): ResultStep[Action, State, Response] =
+    ResultStep(Prop.Result(Prop.Undecided), s, f, Nil, false)
+}
 
 extension[Action, State, Response] (f: Formula[Info[Action, State, Response]])
   def check(actions: List[Action], initial: State, step: (Action, State) => Step[State, Response]): Prop.Result = {
-    ???
+
+    val initialStep: ResultStep[Action, State, Response] =
+      ResultStep.init(initial, f)
+
+    actions.foldLeft(initialStep) {
+      case (rs, action) if !rs.ended =>
+        Try(step(action, rs.state)) match
+          case Success(value) =>
+            val info = Info(action, rs.state, value.state, value.response)
+            val progress = rs.formula.progress(Right(info))
+            val currentState: State = info.nextState
+            val currentFormula: Formula[Info[Action, State, Response]] = progress.next
+            rs.copy(Prop.Result(Prop.True), currentState, currentFormula, rs.actions)
+          case Failure(exception) =>
+            val progress = rs.formula.progress(Left(exception))
+            // TODO - rs.actions
+            val result = Prop.Result(Prop.False).++(progress.next.done)
+            rs.copy(rs.result ++ result, ended = true)
+      case (rs, _) => rs
+    }.result
   }
 
