@@ -24,10 +24,16 @@ object CheckModel extends App {
     case Action.Read => Step(state = state, response = if (state == 0) 0 else state + 1)
 
   def formula: Formula[Info[Action, Int, Int]] =
-    always(() => holds[Info[Action, Int, Int]]("non-negative", item => { item.action match
-      case Action.Read => item.response >= 0
-      case _ => true
-    }))
+    always(() =>
+      holds[Info[Action, Int, Int]](
+        "non-negative",
+        item => {
+          item.action match
+            case Action.Read => item.response >= 0
+            case _ => true
+        }
+      )
+    )
 
   TraceTest.checkAgainst(model, -2, wrong, () => formula).check()
 }

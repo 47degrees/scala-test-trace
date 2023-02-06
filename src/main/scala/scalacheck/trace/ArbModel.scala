@@ -17,10 +17,10 @@ trait StatelessArbModel[Action] extends ArbModel[Unit, Action] {
   def nexts(): Arbitrary[Option[Action]]
 }
 
-extension[State, Action] (arbModel: ArbModel[State, Action])
+extension [State, Action](arbModel: ArbModel[State, Action])
   def gen: Gen[List[Action]] = Gen.sized { size =>
-    (1 to size).foldLeft(Gen.const[(List[Action], State, Boolean)]((Nil, arbModel.initial, false))) {
-      case (genState, _) =>
+    (1 to size)
+      .foldLeft(Gen.const[(List[Action], State, Boolean)]((Nil, arbModel.initial, false))) { case (genState, _) =>
         genState.flatMap {
           case (l, state, true) => Gen.const((l, state, true))
           case (l, state, false) =>
@@ -29,5 +29,5 @@ extension[State, Action] (arbModel: ArbModel[State, Action])
               .arbitrary
               .map(_.fold((l, state, true))(a => (l :+ a, arbModel.step(state, a), false)))
         }
-    }.map(_._1)
+      }.map(_._1)
   }

@@ -38,28 +38,37 @@ object TestScalacheck extends App {
       Step(state = state, response = state + 1)
 
   def formula: Formula[Info[Action, Int, Int]] =
-    always(() => holds[Info[Action, Int, Int]]("non-negative", item => {
-      item.action match
-        case Action.Read => item.response >= 0
-        case _ => true
-    }))
+    always(() =>
+      holds(
+        "non-negative",
+        item => {
+          item.action match
+            case Action.Read => item.response >= 0
+            case _ => true
+        }
+      )
+    )
 
-  val initialState = 0
+  val initialState: Int = 0
   val stepAction: (Action, Int) => Step[Int, Int] = error
+  val initialFormula: Formula[Info[Action, Int, Int]] = formula
   forAllNoShrink(model.gen) { actions =>
-    val result = actions.foldLeft((initialState, Prop.Result(Prop.True))) {
-      case ((state, result), action) =>
-        if (result.success) {
-          Try(stepAction(action, state)) match
-            case Failure(t) =>
-              (state, Prop.Result(Prop.Exception(t)))
-            case Success(value) =>
-              val info = Info(action, state, value.state, value.response)
-              val formulaStep = formula.progress(Right(info))
-              (value.state, formulaStep.result)
-        } else (state, result)
+    val result = actions.foldLeft((initialState, initialFormula, Prop.Result(Prop.True))) { case ((state, form, result), action) =>
+      if (result.success) {
+        // TODO - Combine
+        Try(stepAction(action, state)) match
+          case Failure(t) =>
+            val formulaStep = form.progress(Left(t))
+            (state, formulaStep.next, formulaStep.result)
+          case Success(value) =>
+            val info = Info(action, state, value.state, value.response)
+            val formulaStep = form.progress(Right(info))
+            (value.state, formulaStep.next, formulaStep.result)
+      } else (state, form, result)
     }
-    Prop(result._2)
+    // TODO
+    // result._2.done
+    Prop(result._3)
   }.check(_.withMinSize(100))
 
 }

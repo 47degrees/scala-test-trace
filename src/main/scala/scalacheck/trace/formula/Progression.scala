@@ -1,8 +1,7 @@
 package com.xebia.functional
 package scalacheck.trace.formula
 
-extension (l: FormulaStepResult)
-  private[formula] def isOk: Boolean = l.success
+extension (l: FormulaStepResult) private[formula] def isOk: Boolean = l.success
 
 extension (l: List[FormulaStepResult])
   private[formula] def andResults: FormulaStepResult =
@@ -12,21 +11,21 @@ extension (l: List[FormulaStepResult])
 
 final case class FormulaStep[A](result: FormulaStepResult, next: Formula[A])
 
-extension[A] (atomic: Atomic[A])
+extension [A](atomic: Atomic[A])
   def atomicProgress(x: Result[A]): FormulaStepResult = atomic match
     case TRUE => everythingOk
     case FALSE => problem("fail")
     case Predicate(message, test) =>
       x.fold(
-        { _ => problem("Unexpected exception, expecting value") },
-        { a => if (test(a)) everythingOk else problem(message)}
+        _ => problem("Unexpected exception, expecting value"),
+        a => if (test(a)) everythingOk else problem(message)
       )
     case Throws(message, test) =>
       x.fold(
-        { a => if (test(a)) everythingOk else problem(message) },
-        { _ => problem("Unexpected item, expecting exception") }
+        a => if (test(a)) everythingOk else problem(message),
+        _ => problem("Unexpected item, expecting exception")
       )
-extension[A] (f: Formula[A])
+extension [A](f: Formula[A])
   def progress(x: Result[A]): FormulaStep[A] = f match
     case a: Atomic[A] => FormulaStep(a.atomicProgress(x), TRUE)
     case Not(formula) =>
@@ -58,13 +57,13 @@ extension[A] (f: Formula[A])
         _ => FormulaStep(everythingOk, TRUE),
         a => FormulaStep(everythingOk, formula(a))
       )
-    case a@Always(formula) =>
+    case a @ Always(formula) =>
       // when we have always it has to be true
       // 1. in this state,
       // 2. in any other next state
       val step = formula.progress(x)
       FormulaStep(step.result, and(step.next, a))
-    case e@Eventually(formula) =>
+    case e @ Eventually(formula) =>
       val step = formula.progress(x)
       if (step.result.isOk) {
         // this one is true, so we're done
