@@ -28,12 +28,12 @@ object TestScalacheck extends Properties("Sample") {
 
   def right(action: Action, state: Int): Step[Int, Int] = action match {
     case Action.Increment => Step(state = state + 1, response = 0)
-    case Action.Read => Step(state = state, response = state + 1)
+    case Action.Read => Step(state = state, response = state)
   }
 
   def wrong(action: Action, state: Int): Step[Int, Int] = action match {
     case Action.Increment => Step(state = state + 1, response = 0)
-    case Action.Read => Step(state = state, response = if (state == 10) -1 else state + 1)
+    case Action.Read => Step(state = state, response = if (state == 10) -1 else state)
   }
 
   def error(action: Action, state: Int): Step[Int, Int] = action match {
