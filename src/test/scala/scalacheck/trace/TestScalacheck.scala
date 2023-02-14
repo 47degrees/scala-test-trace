@@ -49,7 +49,7 @@ object TestScalacheck extends Properties("Sample") {
         "non-negative",
         item => {
           val status = item.action match {
-            case Action.Read if item.response >= 0 => Prop.True
+            case Action.Read if item.response.exists(_ >= 0) => Prop.True
             case Action.Read => Prop.False
             case _ => Prop.True
           }

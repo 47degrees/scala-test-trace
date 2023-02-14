@@ -1,27 +1,24 @@
 package com.xebia.functional
 package scalacheck.trace.formula
 
-import org.scalacheck.Prop
-
 final case class FormulaStep[A](result: FormulaStepResult, next: Formula[A])
 object FormulaStep {
-  def atomicProgress[A](x: Result[A]): Atomic[A] => FormulaStepResult = {
+  def atomicProgress[Action, State, Response](x: Info[Action, State, Response]): Atomic[Info[Action, State, Response]] => FormulaStepResult = {
     case TRUE => everythingOk
     case FALSE => problem("fail")
     case Predicate(message, test) =>
-      x.fold(
-        t => error(message, t),
-        a => test(a).label(message)
-      )
+      test(x).label(message)
     case Throws(message, test) =>
-      x.fold(
+      x.response.fold(
         a => test(a).label(message),
-        t => problem("Unexpected item, expecting exception")
+        _ => problem("Unexpected item, expecting exception")
       )
   }
 
-  def progress[A](x: Result[A]): Formula[A] => FormulaStep[A] = {
-    case a: Atomic[A] => FormulaStep(atomicProgress(x)(a), TRUE)
+  def progress[Action, State, Response](
+      x: Info[Action, State, Response]
+  ): Formula[Info[Action, State, Response]] => FormulaStep[Info[Action, State, Response]] = {
+    case a: Atomic[Info[Action, State, Response]] => FormulaStep(atomicProgress(x)(a), TRUE)
     case Not(formula) =>
       if (atomicProgress(x)(formula).success) {
         FormulaStep(problem("Negated condition was true"), TRUE)
@@ -47,10 +44,7 @@ object FormulaStep {
       }
     case Next(formula) => FormulaStep(everythingOk, formula)
     case DependentNext(formula) =>
-      x.fold(
-        _ => FormulaStep(everythingOk, TRUE),
-        a => FormulaStep(everythingOk, formula(a))
-      )
+      FormulaStep(everythingOk, formula(x))
     case a @ Always(formula) =>
       // when we have always it has to be true
       // 1. in this state,
@@ -72,15 +66,15 @@ object FormulaStep {
   // is there something missing to prove?
   // if we have 'eventually', we cannot conclude
   def done[A]: Formula[A] => FormulaStepResult = {
-    case _: Atomic[_] => everythingOk
-    case _: Not[_] => everythingOk
+    case _: Atomic[?] => everythingOk
+    case _: Not[?] => everythingOk
     case And(formulae) => formulae.map(done).reduce(_ && _)
     case Or(formulae) => formulae.map(done).reduce(_ || _)
-    case Implies(i, t) => List(done(i), done(i)).reduce(_ && _)
+    case Implies(i, t) => List(done(i), done(t)).reduce(_ && _)
     // we have nothing missing here
-    case _: Next[_] => everythingOk
-    case _: DependentNext[_] => everythingOk
-    case _: Always[_] => everythingOk
+    case _: Next[?] => everythingOk
+    case _: DependentNext[?] => everythingOk
+    case _: Always[?] => everythingOk
     // we have an 'eventually' missing
     case Eventually(formula) =>
       problem(s"Should hold eventually: ${formula.pretty}")
