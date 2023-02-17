@@ -32,9 +32,9 @@ object SizedQueue {
 
     override def pop: Option[A] = {
       val first = internal.headOption
-      if (first.nonEmpty) {
-        internal.remove(0)
-      } else throw PopOnEmptyError
+      // if (first.nonEmpty) {
+      internal.remove(0)
+      // } else throw PopOnEmptyError
       first
     }
 
