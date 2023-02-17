@@ -2,6 +2,7 @@ package com.xebia.functional
 package scalacheck.trace.formula
 
 import org.scalacheck.Prop
+import scalacheck.trace.formula.Formula.*
 import scalacheck.trace.formula.syntax.*
 import scalacheck.trace.formula.syntax.given
 
@@ -14,8 +15,7 @@ object FormulaStep {
     Prop.Result(Prop.False).label(message)
 
   def atomicProgress[Action, State, Response](x: Info[Action, State, Response]): Atomic[Info[Action, State, Response]] => Prop.Result = {
-    case TRUE => true
-    case FALSE => problem("fail")
+    case c: Constant => Prop.Result(c.status)
     case Predicate(message, test) =>
       test(x).label(message)
     case Throws(message, test) =>
@@ -38,11 +38,11 @@ object FormulaStep {
     case And(formulae) =>
       val steps = formulae.map(progress(x))
       val result = steps.map(_.result).reduce(_ && _)
-      FormulaStep(result, And.and(steps.map(_.next)))
+      FormulaStep(result, and(steps.map(_.next)))
     case Or(formulae) =>
       val steps = formulae.map(progress(x))
       val result = steps.map(_.result).reduce(_ || _)
-      FormulaStep(result, Or.or(steps.map(_.next)))
+      FormulaStep(result, or(steps.map(_.next)))
     case Implies(i, t) =>
       val leftResult = atomicProgress(x)(i)
       if (leftResult.success) {
@@ -60,7 +60,7 @@ object FormulaStep {
       // 1. in this state,
       // 2. in any other next state
       val step = progress(x)(formula)
-      FormulaStep(step.result, And.and(step.next, a))
+      FormulaStep(step.result, and(step.next, a))
     case e @ Eventually(formula) =>
       val step = progress(x)(formula)
       if (step.result.success) {

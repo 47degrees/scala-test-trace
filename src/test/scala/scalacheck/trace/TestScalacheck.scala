@@ -1,18 +1,15 @@
 package com.xebia.functional
 package scalacheck.trace
 
-import scalacheck.trace.*
 import scalacheck.trace.formula.*
+import scalacheck.trace.formula.Formula.*
 import scalacheck.trace.formula.syntax.*
 
 import org.scalacheck.{Arbitrary, Gen, Prop, Properties}
 
-import scala.util.{Failure, Success, Try}
-
 object TestScalacheck extends Properties("Sample") {
 
-  import org.scalacheck.Arbitrary.arbitrary
-  import org.scalacheck.Prop.{forAll, forAllNoShrink}
+  import org.scalacheck.Prop.forAll
 
   object Action extends Enumeration {
     type Action = Value
@@ -24,7 +21,7 @@ object TestScalacheck extends Properties("Sample") {
     override def nexts(): Arbitrary[Option[Action]] = Arbitrary(Gen.some(Gen.oneOf(Action.Increment, Action.Read)))
   }
 
-  val gen = Gen.oneOf(Action.Increment, Action.Read)
+  val gen: Gen[TestScalacheck.Action.Value] = Gen.oneOf(Action.Increment, Action.Read)
 
   def right(action: Action, state: Int): Step[Int, Int] = action match {
     case Action.Increment => Step(state = state + 1, response = 0)
@@ -44,8 +41,8 @@ object TestScalacheck extends Properties("Sample") {
   }
 
   def formula: Formula[Info[Action, Int, Int]] =
-    Always.always {
-      Predicate.holds(
+    always {
+      holds(
         "non-negative",
         item => {
           val status = item.action match {

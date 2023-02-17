@@ -2,6 +2,7 @@ package com.xebia.functional
 package scalacheck.trace
 
 import scalacheck.trace.formula.*
+import scalacheck.trace.formula.Formula.*
 import scalacheck.trace.formula.syntax.*
 
 import org.scalacheck.{Arbitrary, Gen, Prop, Properties}
@@ -121,14 +122,14 @@ object TestQueue extends Properties("Test Queue") {
     }
 
   def formula: Formula[InfoType] = {
-    And.and(
-      Always.always(
-        Implies.implies[InfoType](
+    and(
+      always(
+        implies[InfoType](
           isPush(_), {
-            Next.next({
-              Implies.implies[InfoType](
+            next({
+              implies[InfoType](
                 isPop(_),
-                Predicate.holds[InfoType](
+                Predicate[InfoType](
                   "Expected value",
                   _.response match {
                     case Right(MaybeValue(Some(_))) => Prop.Result(Prop.True)
@@ -140,13 +141,13 @@ object TestQueue extends Properties("Test Queue") {
           }
         )
       ),
-      Always.always(
-        Implies.implies[InfoType](
+      always(
+        implies[InfoType](
           isClear(_), {
-            Next.next(
-              Implies.implies[InfoType](
+            next(
+              implies[InfoType](
                 isPop(_),
-                Predicate.holds[InfoType](
+                Predicate[InfoType](
                   "Expected non value",
                   _.response match {
                     case Right(MaybeValue(Some(_))) => Prop.Result(Prop.False)
@@ -159,13 +160,13 @@ object TestQueue extends Properties("Test Queue") {
           }
         )
       ) /*,
-      Always.always(
-        Implies.implies[InfoType](
+      always(
+        implies[InfoType](
           isClear(_), {
-            Next.next(
-              Implies.implies[InfoType](
+            next(
+              implies[InfoType](
                 isPop(_),
-                Throws.throws[SizedQueue.PopOnEmptyError.type]("PopOnEmptyError not thrown", _ => Prop.Result(Prop.True))
+                throws[SizedQueue.PopOnEmptyError.type]("PopOnEmptyError not thrown", _ => Prop.Result(Prop.True))
               )
             )
           }
