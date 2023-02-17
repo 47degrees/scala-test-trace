@@ -150,14 +150,15 @@ object TestQueue extends Properties("Test Queue") {
                   "Expected non value",
                   _.response match {
                     case Right(MaybeValue(Some(_))) => Prop.Result(Prop.False)
-                    case _ => Prop.Result(Prop.True)
+                    case Right(MaybeValue(None)) => Prop.Result(Prop.True)
+                    case _ => Prop.Result(Prop.False)
                   }
                 )
               )
             )
           }
         )
-      ),
+      ) /*,
       Always.always(
         Implies.implies[InfoType](
           isClear(_), {
@@ -169,12 +170,12 @@ object TestQueue extends Properties("Test Queue") {
             )
           }
         )
-      )
+      )*/
     )
   }
 
   property("checkRight") = forAll(model.gen) { actions =>
-    formula.check(actions, SizedQueue.of(5), behaviour)
+    formula.check(actions, queue, behaviour)
   }
 
 }

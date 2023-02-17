@@ -5,7 +5,7 @@ import org.scalacheck.Prop
 
 object syntax:
   extension [A, B](a: Atomic[A])
-    def contramap(f: B => A): Atomic[B] = 
+    def contramap(f: B => A): Atomic[B] =
       internal.contramapAtomic(f)(a)
 
   extension [A, B](formula: Formula[A])
@@ -15,3 +15,5 @@ object syntax:
   extension [Action, State, Response](f: Formula[Info[Action, State, Response]])
     def check(actions: List[Action], initial: State, step: (Action, State) => Step[State, Response]): Prop =
       internal.checkFormula(actions, initial, step)(f)
+
+  given Conversion[Boolean, Prop.Result] = b => Prop.Result(if (b) Prop.True else Prop.False)

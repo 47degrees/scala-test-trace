@@ -9,7 +9,7 @@ sealed trait Formula[-A] {
   def negate: Formula[A] = this match {
     case TRUE => FALSE
     case FALSE => TRUE
-    case p: Predicate[_] => Not(p)
+    case p: Predicate[?] => Not(p)
     case t: Throws => Not(t)
     case Not(formula) => formula
     case And(formulae) => Or.or(formulae.map(_.negate))
