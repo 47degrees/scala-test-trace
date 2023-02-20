@@ -7,6 +7,8 @@ import scala.util.{Failure, Success, Try}
 
 object internal {
 
+  type InternalInfo[Action, State, Response] = Info[Action, State, Either[Throwable, Response]]
+
   def contramapAtomic[A, B](f: B => A): Atomic[A] => Atomic[B] = {
     case c: Constant => c
     case Predicate(m, t) => Predicate(m, b => t(f(b)))
@@ -28,18 +30,12 @@ object internal {
   def checkFormula[Action, State, Response](actions: List[Action], initial: State, step: (Action, State) => Step[State, Response])(
       f: Formula[Info[Action, State, Response]]
   ): Prop = {
-
     val (_, pendingFormulas, result) = actions.foldLeft((initial, f, Prop.Result(Prop.Undecided))) { case ((state, form, result), action) =>
       if (result.success || result.status == Prop.Undecided) {
-        Try(step(action, state)) match {
-          case Failure(t) =>
-            val formulaStep = FormulaStep.progress(Left(t))(form)
-            (state, formulaStep.next, formulaStep.result)
-          case Success(value) =>
-            val info = Info(action, state, value.state, value.response)
-            val formulaStep = FormulaStep.progress(Right(info))(form)
-            (value.state, formulaStep.next, formulaStep.result)
-        }
+        val value = step(action, state)
+        val info = Info(action, state, value.state, value.response)
+        val formulaStep = FormulaStep.progress(info)(form)
+        (value.state, formulaStep.next, formulaStep.result)
       } else (state, form, result)
     }
     Prop(result && FormulaStep.done(pendingFormulas))

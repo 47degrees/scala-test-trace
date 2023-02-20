@@ -3,6 +3,8 @@ package scalacheck.trace.formula
 
 import org.scalacheck.Prop
 
+import scala.language.implicitConversions
+
 object syntax {
   implicit class AtomicOps[A](private val a: Atomic[A]) {
     def contramap[B](f: B => A): Atomic[B] =
@@ -18,4 +20,10 @@ object syntax {
     def check(actions: List[Action], initial: State, step: (Action, State) => Step[State, Response]): Prop =
       internal.checkFormula(actions, initial, step)(f)
   }
+
+  implicit def booleanToResult(b: Boolean): Prop.Result =
+    Prop.Result(if (b) Prop.True else Prop.False)
+
+  // For Scala 3 compatibility
+  object `given` {}
 }
