@@ -7,6 +7,8 @@ import scala.util.{Failure, Success, Try}
 
 object internal {
 
+  type InternalInfo[Action, State, Response] = Info[Action, State, Either[Throwable, Response]]
+
   def contramapAtomic[A, B](f: B => A): Atomic[A] => Atomic[B] = {
     case c: Constant => c
     case Predicate(m, t) => Predicate(m, b => t(f(b)))

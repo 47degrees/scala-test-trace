@@ -36,8 +36,13 @@ object TestScalacheck extends Properties("Sample") {
   def error(action: Action, state: Int): Step[Int, Int] = action match {
     case Action.Increment => Step(state = state + 1, response = 0)
     case Action.Read =>
-      if (state == 2) throw new RuntimeException("ERROR!")
-      Step(state = state, response = state + 1)
+      Step(
+        state = state,
+        response = {
+          if (state == 10) throw new RuntimeException("ERROR!")
+          state + 1
+        }
+      )
   }
 
   def formula: Formula[Info[Action, Int, Int]] =
@@ -46,7 +51,7 @@ object TestScalacheck extends Properties("Sample") {
         "non-negative",
         item => {
           val status = item.action match {
-            case Action.Read if item.response.exists(_ >= 0) => Prop.True
+            case Action.Read if item.response >= 0 => Prop.True
             case Action.Read => Prop.False
             case _ => Prop.True
           }
@@ -62,5 +67,13 @@ object TestScalacheck extends Properties("Sample") {
   property("checkRight") = forAll(model.gen) { actions =>
     initialFormula.check(actions, initialState, stepAction)
   }
+//
+//  property("checkWrong") = forAll(model.gen) { actions =>
+//    initialFormula.check(actions, initialState, wrong)
+//  }
+//
+//  property("checkThrow") = forAll(model.gen) { actions =>
+//    initialFormula.check(actions, initialState, error)
+//  }
 
 }

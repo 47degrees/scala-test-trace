@@ -12,5 +12,5 @@ final case class Info[Action, State, Response](
     action: Action,
     previousState: State,
     nextState: State,
-    response: Either[Throwable, Response]
+    response: Response
 )

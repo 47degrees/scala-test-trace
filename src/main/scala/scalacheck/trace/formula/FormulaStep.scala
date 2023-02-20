@@ -3,6 +3,7 @@ package scalacheck.trace.formula
 
 import org.scalacheck.Prop
 import scalacheck.trace.formula.Formula.*
+import scalacheck.trace.formula.internal.*
 import scalacheck.trace.formula.syntax.*
 import scalacheck.trace.formula.syntax.given
 
@@ -14,10 +15,20 @@ object FormulaStep {
   private[this] def problem(message: String): Prop.Result =
     Prop.Result(Prop.False).label(message)
 
-  def atomicProgress[Action, State, Response](x: Info[Action, State, Response]): Atomic[Info[Action, State, Response]] => Prop.Result = {
+  private[this] val exceptionRaised: Prop.Result => Boolean = {
+    _.status match {
+      case Prop.Exception(_) => true
+      case _ => false
+    }
+  }
+
+  def atomicProgress[Action, State, Response](x: InternalInfo[Action, State, Response]): Atomic[Info[Action, State, Response]] => Prop.Result = {
     case c: Constant => Prop.Result(c.status)
     case Predicate(message, test) =>
-      test(x).label(message)
+      x.response.fold(
+        e => Prop.Result(Prop.Exception(e)).label(message),
+        v => test(Info(x.action, x.previousState, x.nextState, v)).label(message)
+      )
     case Throws(message, test) =>
       x.response.fold(
         a => test(a).label(message),
@@ -26,11 +37,14 @@ object FormulaStep {
   }
 
   def progress[Action, State, Response](
-      x: Info[Action, State, Response]
+      x: InternalInfo[Action, State, Response]
   ): Formula[Info[Action, State, Response]] => FormulaStep[Info[Action, State, Response]] = {
     case a: Atomic[Info[Action, State, Response]] => FormulaStep(atomicProgress(x)(a), TRUE)
     case Not(formula) =>
-      if (atomicProgress(x)(formula).success) {
+      val result = atomicProgress(x)(formula)
+      if (exceptionRaised(result)) {
+        FormulaStep(true, Constant(result.status))
+      } else if (result.success) {
         FormulaStep(problem("Negated condition was true"), TRUE)
       } else {
         FormulaStep(true, TRUE)
@@ -45,7 +59,9 @@ object FormulaStep {
       FormulaStep(result, or(steps.map(_.next)))
     case Implies(i, t) =>
       val leftResult = atomicProgress(x)(i)
-      if (leftResult.success) {
+      if (exceptionRaised(leftResult)) {
+        FormulaStep(true, Constant(leftResult.status))
+      } else if (leftResult.success) {
         // if left is true, we check the right
         progress(x)(t)
       } else {
@@ -54,7 +70,10 @@ object FormulaStep {
       }
     case Next(formula) => FormulaStep(true, formula)
     case DependentNext(formula) =>
-      FormulaStep(true, formula(x))
+      x.response.fold(
+        e => FormulaStep(true, Constant(Prop.Exception(e))),
+        v => FormulaStep(true, formula(Info(x.action, x.previousState, x.nextState, v)))
+      )
     case a @ Always(formula) =>
       // when we have always it has to be true
       // 1. in this state,
@@ -63,7 +82,9 @@ object FormulaStep {
       FormulaStep(step.result, and(step.next, a))
     case e @ Eventually(formula) =>
       val step = progress(x)(formula)
-      if (step.result.success) {
+      if (exceptionRaised(step.result)) {
+        FormulaStep(true, Constant(step.result.status))
+      } else if (step.result.success) {
         // this one is true, so we're done
         FormulaStep(true, TRUE)
       } else {

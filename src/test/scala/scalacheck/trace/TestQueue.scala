@@ -32,9 +32,9 @@ object SizedQueue {
 
     override def pop: Option[A] = {
       val first = internal.headOption
-      // if (first.nonEmpty) {
-      internal.remove(0)
-      // } else throw PopOnEmptyError
+      if (first.nonEmpty) {
+        internal.remove(0)
+      } // else throw PopOnEmptyError
       first
     }
 
@@ -132,7 +132,7 @@ object TestQueue extends Properties("Test Queue") {
                 Predicate[InfoType](
                   "Expected value",
                   _.response match {
-                    case Right(MaybeValue(Some(_))) => Prop.Result(Prop.True)
+                    case MaybeValue(Some(_)) => Prop.Result(Prop.True)
                     case _ => Prop.Result(Prop.False)
                   }
                 )
@@ -150,9 +150,9 @@ object TestQueue extends Properties("Test Queue") {
                 Predicate[InfoType](
                   "Expected non value",
                   _.response match {
-                    case Right(MaybeValue(Some(_))) => Prop.Result(Prop.False)
-                    case Right(MaybeValue(None)) => Prop.Result(Prop.True)
-                    case _ => Prop.Result(Prop.False)
+                    case MaybeValue(Some(_)) => Prop.Result(Prop.False).label("got some value for pop after a clear")
+                    case MaybeValue(None) => Prop.Result(Prop.True)
+                    case UnitValue => Prop.Result(Prop.False).label("got unit value for pop")
                   }
                 )
               )
